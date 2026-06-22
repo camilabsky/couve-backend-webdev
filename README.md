@@ -13,7 +13,7 @@ Django 4.x + Django REST Framework + JWT.
 
 ```bash
 python -m venv venv
-venv\Scripts\activate        # Windows
+venv\Scripts\activate       # Windows
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py createsuperuser
