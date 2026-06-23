@@ -7,8 +7,8 @@ router.register('recompensas-api', views.RecompensasViewSet, basename='recompens
 
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('', views.landing_page, name='landing'),
+    path('', include(router.urls)),
     path('home/', views.home, name='home'),
     path('tarefas/', views.tarefas_page, name='tarefas'),
     path('tarefas/<int:tarefa_id>/aceitar/', views.aceitar_tarefa_page, name='aceitar_tarefa_page'),
@@ -28,5 +28,6 @@ urlpatterns = [
     path('resgatar_recompensa', views.resgatar_recompensa),
     path("me/", views.me, name="me"),
     path("login/", views.login_page, name="login"),
+    path("cadastro/", views.cadastro_page, name="cadastro"),
     path("logout/", views.logout_page, name="logout"),
     ]

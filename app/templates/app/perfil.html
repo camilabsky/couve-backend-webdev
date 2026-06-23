@@ -7,7 +7,13 @@
     <div class="section-head">
         <div>
             <h1 class="section-title">Perfil</h1>
-            <p class="section-subtitle">Resumo de progresso do perfil principal do sistema.</p>
+            <p class="section-subtitle">
+                {% if is_admin %}
+                Painel administrativo com relatórios de recompensas e tarefas.
+                {% else %}
+                Resumo de progresso do seu perfil.
+                {% endif %}
+            </p>
         </div>
     </div>
 
@@ -42,6 +48,124 @@
         </div>
     </div>
 
+    <section class="panel" style="margin-top: 18px;">
+        <div class="section-head" style="margin-bottom: 10px;">
+            <div>
+                <h2 class="section-title" style="font-size: 1.6rem;">Editar dados do perfil</h2>
+                <p class="section-subtitle">Atualize somente nome e e-mail da sua conta.</p>
+            </div>
+        </div>
+
+        <form method="post" class="list" style="gap: 12px;">
+            {% csrf_token %}
+
+            <label class="muted" for="nome">Nome</label>
+            <input
+                id="nome"
+                name="nome"
+                type="text"
+                value="{{ perfil.nome }}"
+                required
+                style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);"
+            />
+
+            <label class="muted" for="email">E-mail</label>
+            <input
+                id="email"
+                name="email"
+                type="email"
+                value="{{ perfil.email|default:'' }}"
+                required
+                style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);"
+            />
+
+            <button class="button" type="submit" style="width: fit-content;">Salvar alterações</button>
+        </form>
+    </section>
+
+    {% if is_admin %}
+    <section class="panel" style="margin-top: 18px;">
+        <div class="section-head" style="margin-bottom: 10px;">
+            <div>
+                <h2 class="section-title" style="font-size: 1.6rem;">Relatório 1: Recompensas por usuário</h2>
+                <p class="section-subtitle">Lista detalhada, agrupamento por recompensa e resumo por usuário.</p>
+            </div>
+        </div>
+
+        {% regroup report_recompensas_detalhadas by id_perfil.nome as recompensas_por_usuario %}
+        <div class="list">
+            {% for grupo in recompensas_por_usuario %}
+            <article class="list-item">
+                <strong>{{ grupo.grouper }}</strong>
+                <ul style="margin: 6px 0 0 18px; padding: 0;">
+                    {% for item in grupo.list %}
+                    <li>{{ item.id_recompensa.nome }}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+            {% empty %}
+            <div class="empty">Nenhum resgate encontrado com os filtros selecionados.</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+        <div class="section-head" style="margin-bottom: 10px;">
+            <div>
+                <h2 class="section-title" style="font-size: 1.6rem;">Relatório 2: Cumprimento de tarefas no tempo</h2>
+                <p class="section-subtitle">Número de tarefas cumpridas por semana, ranking de usuários e detalhamento de autoria.</p>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 8px;">Número de tarefas por semana</h3>
+                <div class="list">
+                    {% for row in report_tarefas_serie_temporal %}
+                    <article class="list-item">
+                        <strong>{{ row.periodo|date:'d/m/Y' }}</strong>
+                        <span class="muted">Concluídas: {{ row.total }}</span>
+                    </article>
+                    {% empty %}
+                    <div class="empty">Sem dados de tarefas concluídas por semana.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 8px;">Ranking de usuários</h3>
+                <div class="list">
+                    {% for row in report_tarefas_ranking %}
+                    <article class="list-item">
+                        <strong>{{ row.id_perfil__nome }}{% if row.id_perfil__email %} ({{ row.id_perfil__email }}){% endif %}</strong>
+                        <span class="muted">Usuário #{{ row.id_perfil }}</span>
+                        <span class="muted">Tarefas concluídas: {{ row.total_concluidas }}</span>
+                    </article>
+                    {% empty %}
+                    <div class="empty">Sem dados para ranking de usuários.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title" style="font-size: 1.2rem; margin: 16px 0 8px;">Detalhamento: quem cumpriu quais tarefas</h3>
+        {% regroup report_tarefas_detalhadas by id_perfil.nome as tarefas_por_usuario %}
+        <div class="list">
+            {% for grupo in tarefas_por_usuario %}
+            <article class="list-item">
+                <strong>{{ grupo.grouper }}</strong>
+                <ul style="margin: 6px 0 0 18px; padding: 0;">
+                    {% for tarefa in grupo.list %}
+                    <li>{{ tarefa.titulo }}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+            {% empty %}
+            <div class="empty">Nenhuma tarefa concluída registrada.</div>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
     <div class="grid-2" style="margin-top: 18px;">
         <div>
             <h2 class="section-title" style="font-size: 1.6rem;">Tarefas concluídas</h2>
@@ -73,6 +197,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     {% else %}
     <div class="empty">Nenhum perfil encontrado no banco de dados.</div>
     {% endif %}

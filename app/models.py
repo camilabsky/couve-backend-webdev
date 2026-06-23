@@ -1,6 +1,14 @@
+from django.conf import settings
 from django.db import models
 
 class Perfil(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='perfil'
+    )
     nome = models.CharField(max_length=64)
     email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
 
@@ -31,6 +39,7 @@ class Tarefas(models.Model):
         db_column='id_perfil'
     )
     concluido = models.BooleanField(default=False)
+    data_conclusao = models.DateTimeField(null=True, blank=True)
     moedas = models.IntegerField()
     mudas = models.IntegerField()
     tempo = models.IntegerField()
@@ -51,6 +60,7 @@ class PerfilRecompensas(models.Model):
         on_delete=models.CASCADE,
         db_column='id_recompensa'
     )
+    data_resgate = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'PerfilRecompensas'

@@ -1,0 +1,58 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Cadastro | Couve{% endblock %}
+
+{% block content %}
+<section class="panel" style="max-width: 560px; margin-inline: auto; margin-top: 36px;">
+    <div class="section-head" style="margin-bottom: 8px;">
+        <div>
+            <h1 class="section-title" style="font-size: 2rem;">Criar conta</h1>
+            <p class="section-subtitle">Preencha os dados para cadastrar um novo usuário.</p>
+        </div>
+    </div>
+
+    <form method="post" class="list" style="gap: 14px;" onsubmit="return validateSignupForm();">
+        {% csrf_token %}
+
+        <label class="muted" for="username">Username*</label>
+        <input id="username" name="username" type="text" required
+               style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);" />
+
+        <label class="muted" for="email">E-mail*</label>
+        <input id="email" name="email" type="email" required
+               style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);" />
+
+        <label class="muted" for="nome_completo">Nome completo (opcional)</label>
+        <input id="nome_completo" name="nome_completo" type="text"
+               style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);" />
+
+        <label class="muted" for="password">Senha*</label>
+        <input id="password" name="password" type="password" required
+               style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);" />
+
+        <label class="muted" for="password_confirm">Confirmar senha*</label>
+        <input id="password_confirm" name="password_confirm" type="password" required
+               style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);" />
+
+        <button class="button" type="submit" style="width: 100%;">Cadastrar</button>
+
+        <p class="muted" style="text-align: center; margin: 0;">
+            Já tem conta? <a href="{% url 'login' %}" style="color: #bbf7d0;">Entrar</a>
+        </p>
+    </form>
+</section>
+
+<script>
+function validateSignupForm() {
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password_confirm').value;
+
+    if (password !== passwordConfirm) {
+        alert('As senhas não coincidem.');
+        return false;
+    }
+
+    return true;
+}
+</script>
+{% endblock %}

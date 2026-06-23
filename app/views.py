@@ -1,6 +1,9 @@
 from django.contrib import messages
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -8,15 +11,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import Sum, Count, Value
 from django.db.models.functions import Coalesce
+from django.db.models.functions import TruncWeek
 from .models import Tarefas, Perfil, Recompensas, PerfilRecompensas
 from .serializers import RecompensasSerializer
 from rest_framework import permissions
-from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
-from django.shortcuts import render, redirect
+User = get_user_model()
 
 # # Endpoint público para teste
 # @api_view(['GET'])
@@ -36,8 +36,19 @@ def me(request):
         "last_name": request.user.last_name,
     })
     
-def get_active_profile():
-    return Perfil.objects.order_by('id').first()
+def get_or_create_user_profile(user):
+    if not user.is_authenticated:
+        return None
+
+    profile, _ = Perfil.objects.get_or_create(
+        user=user,
+        defaults={
+            'nome': user.get_full_name() or user.username,
+            'email': user.email or None,
+        },
+    )
+
+    return profile
 
 
 def get_profile_balance(perfil):
@@ -56,6 +67,92 @@ def get_profile_balance(perfil):
     return total_moedas - total_gasto
 
 
+def build_admin_reports(request):
+    # Report 1 filters
+    r_user = (request.GET.get('r_user') or '').strip()
+    r_recompensa = (request.GET.get('r_recompensa') or '').strip()
+    r_data_inicio = (request.GET.get('r_data_inicio') or '').strip()
+    r_data_fim = (request.GET.get('r_data_fim') or '').strip()
+
+    report_recompensas = PerfilRecompensas.objects.filter(id_perfil__isnull=False).select_related('id_perfil', 'id_recompensa')
+    if r_user:
+        report_recompensas = report_recompensas.filter(id_perfil_id=r_user)
+    if r_recompensa:
+        report_recompensas = report_recompensas.filter(id_recompensa_id=r_recompensa)
+    if r_data_inicio:
+        report_recompensas = report_recompensas.filter(data_resgate__date__gte=r_data_inicio)
+    if r_data_fim:
+        report_recompensas = report_recompensas.filter(data_resgate__date__lte=r_data_fim)
+
+    recompensas_detalhadas = report_recompensas.order_by('-data_resgate', '-id')
+
+    recompensas_resumo_usuario = (
+        report_recompensas
+        .values('id_perfil', 'id_perfil__nome', 'id_perfil__email')
+        .annotate(
+            total_resgates=Count('id'),
+            total_gasto=Coalesce(Sum('id_recompensa__preco'), Value(0)),
+        )
+        .order_by('-total_resgates', 'id_perfil__nome')
+    )
+
+    recompensas_agrupadas = (
+        report_recompensas
+        .values(
+            'id_perfil',
+            'id_perfil__nome',
+            'id_perfil__email',
+            'id_recompensa',
+            'id_recompensa__nome',
+            'id_recompensa__tipo',
+            'id_recompensa__preco',
+        )
+        .annotate(quantidade=Count('id'))
+        .order_by('id_perfil__nome', 'id_recompensa__nome')
+    )
+
+    report_tarefas = Tarefas.objects.filter(concluido=True, id_perfil__isnull=False).select_related('id_perfil')
+
+    tarefas_detalhadas = report_tarefas.order_by('-data_conclusao', '-id')
+
+    tarefas_serie_temporal = (
+        report_tarefas
+        .exclude(data_conclusao__isnull=True)
+        .annotate(periodo=TruncWeek('data_conclusao'))
+        .values('periodo')
+        .annotate(total=Count('id'))
+        .order_by('periodo')
+    )
+
+    tarefas_ranking = (
+        report_tarefas
+        .values('id_perfil', 'id_perfil__nome', 'id_perfil__email')
+        .annotate(total_concluidas=Count('id'))
+        .order_by('-total_concluidas', 'id_perfil__nome')
+    )
+
+    tarefas_tipos = Tarefas.objects.values_list('tipo', flat=True).distinct().order_by('tipo')
+
+    return {
+        'is_admin': True,
+        'report_recompensas_detalhadas': recompensas_detalhadas,
+        'report_recompensas_resumo_usuario': recompensas_resumo_usuario,
+        'report_recompensas_agrupadas': recompensas_agrupadas,
+        'report_tarefas_detalhadas': tarefas_detalhadas,
+        'report_tarefas_serie_temporal': tarefas_serie_temporal,
+        'report_tarefas_ranking': tarefas_ranking,
+        'report_filtros': {
+            'r_user': r_user,
+            'r_recompensa': r_recompensa,
+            'r_data_inicio': r_data_inicio,
+            'r_data_fim': r_data_fim,
+        },
+        'report_perfis': Perfil.objects.order_by('nome'),
+        'report_recompensas': Recompensas.objects.order_by('nome'),
+        'report_tipos_tarefa': tarefas_tipos,
+    }
+
+
 def landing_page(request):
     context = {
         'total_perfis': Perfil.objects.count(),
@@ -71,8 +168,15 @@ def login_page(request):
         return redirect("home")
 
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+        identifier = (request.POST.get("username") or "").strip()
+        password = request.POST.get("password") or ""
+
+        username = identifier
+        if '@' in identifier:
+            matched_user = User.objects.filter(email__iexact=identifier).first()
+            if matched_user:
+                username = matched_user.username
+
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
@@ -82,6 +186,51 @@ def login_page(request):
     context = {'hide_header': True}
     return render(request, "app/login.html", context)
 
+
+def cadastro_page(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        email = (request.POST.get("email") or "").strip().lower()
+        nome_completo = (request.POST.get("nome_completo") or "").strip()
+        password = request.POST.get("password") or ""
+        password_confirm = request.POST.get("password_confirm") or ""
+
+        if not username or not email or not password or not password_confirm:
+            messages.error(request, "Preencha todos os campos obrigatórios.")
+            return render(request, "app/cadastro.html", {'hide_header': True})
+
+        if password != password_confirm:
+            messages.error(request, "As senhas não coincidem.")
+            return render(request, "app/cadastro.html", {'hide_header': True})
+
+        if User.objects.filter(username__iexact=username).exists():
+            messages.error(request, "Este username já está em uso.")
+            return render(request, "app/cadastro.html", {'hide_header': True})
+
+        if User.objects.filter(email__iexact=email).exists() or Perfil.objects.filter(email__iexact=email).exists():
+            messages.error(request, "Este e-mail já está em uso.")
+            return render(request, "app/cadastro.html", {'hide_header': True})
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+        )
+
+        Perfil.objects.create(
+            user=user,
+            nome=nome_completo or username,
+            email=email,
+        )
+
+        messages.success(request, "Cadastro realizado com sucesso. Faça login para continuar.")
+        return redirect("login")
+
+    return render(request, "app/cadastro.html", {'hide_header': True})
+
 def logout_page(request):
     logout(request)
     return redirect("landing")
@@ -89,7 +238,7 @@ def logout_page(request):
 
 @login_required(login_url="login")
 def home(request):
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
     context = {
         'greeting_name': perfil.nome if perfil else 'visitante',
         'perfil': perfil,
@@ -104,7 +253,7 @@ def home(request):
 
 @login_required(login_url="login")
 def tarefas_page(request):
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
     context = {
         'perfil': perfil,
         'saldo': get_profile_balance(perfil),
@@ -114,7 +263,7 @@ def tarefas_page(request):
 
 @login_required(login_url="login")
 def recompensas_page(request):
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
     estoque_por_recompensa = {
         item['id_recompensa_id']: item['total']
         for item in PerfilRecompensas.objects.filter(id_perfil__isnull=True)
@@ -135,9 +284,35 @@ def recompensas_page(request):
 
 @login_required(login_url="login")
 def perfil_page(request):
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
+
+    if request.method == 'POST' and perfil:
+        nome = (request.POST.get('nome') or '').strip()
+        email = (request.POST.get('email') or '').strip().lower()
+
+        if not nome or not email:
+            messages.error(request, 'Nome e e-mail são obrigatórios.')
+            return redirect('perfil')
+
+        duplicated_user_email = User.objects.filter(email__iexact=email).exclude(id=request.user.id).exists()
+        duplicated_profile_email = Perfil.objects.filter(email__iexact=email).exclude(id=perfil.id).exists()
+        if duplicated_user_email or duplicated_profile_email:
+            messages.error(request, 'Este e-mail já está em uso por outro usuário.')
+            return redirect('perfil')
+
+        perfil.nome = nome
+        perfil.email = email
+        perfil.save(update_fields=['nome', 'email'])
+
+        request.user.email = email
+        request.user.save(update_fields=['email'])
+
+        messages.success(request, 'Perfil atualizado com sucesso.')
+        return redirect('perfil')
+
     context = {
         'perfil': perfil,
+        'is_admin': request.user.is_superuser,
         'saldo': get_profile_balance(perfil),
         'tarefas_concluidas': Tarefas.objects.filter(id_perfil=perfil, concluido=True).count() if perfil else 0,
         'moedas': Tarefas.objects.filter(id_perfil=perfil, concluido=True).aggregate(total=Coalesce(Sum('moedas'), Value(0)))['total'] if perfil else 0,
@@ -146,15 +321,19 @@ def perfil_page(request):
         'tarefas_concluidas_lista': Tarefas.objects.filter(id_perfil=perfil, concluido=True).order_by('titulo') if perfil else [],
         'recompensas_resgatadas_lista': PerfilRecompensas.objects.filter(id_perfil=perfil).select_related('id_recompensa').order_by('id_recompensa__nome') if perfil else [],
     }
+    if request.user.is_superuser:
+        context.update(build_admin_reports(request))
+
     return render(request, 'app/perfil.html', context)
 
 
 @transaction.atomic
+@login_required(login_url="login")
 def aceitar_tarefa_page(request, tarefa_id):
     if request.method != 'POST':
         return redirect('tarefas')
 
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
     if not perfil:
         messages.error(request, 'Nenhum perfil disponível para aceitar tarefas.')
         return redirect('tarefas')
@@ -171,13 +350,14 @@ def aceitar_tarefa_page(request, tarefa_id):
 
 
 @transaction.atomic
+@login_required(login_url="login")
 def concluir_tarefa_page(request, tarefa_id):
     next_page = request.POST.get('next', 'tarefas')
 
     if request.method != 'POST':
         return redirect(next_page)
 
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
     if not perfil:
         messages.error(request, 'Nenhum perfil disponível para concluir tarefas.')
         return redirect(next_page)
@@ -189,18 +369,20 @@ def concluir_tarefa_page(request, tarefa_id):
         messages.warning(request, 'Essa tarefa já foi concluída.')
     else:
         tarefa.concluido = True
-        tarefa.save(update_fields=['concluido'])
+        tarefa.data_conclusao = timezone.now()
+        tarefa.save(update_fields=['concluido', 'data_conclusao'])
         messages.success(request, f'Tarefa "{tarefa.titulo}" concluída. As moedas já entraram no saldo.')
 
     return redirect(next_page)
 
 
 @transaction.atomic
+@login_required(login_url="login")
 def resgatar_recompensa_page(request, recompensa_id):
     if request.method != 'POST':
         return redirect('recompensas')
 
-    perfil = get_active_profile()
+    perfil = get_or_create_user_profile(request.user)
     if not perfil:
         messages.error(request, 'Nenhum perfil disponível para resgatar recompensas.')
         return redirect('recompensas')
@@ -220,7 +402,8 @@ def resgatar_recompensa_page(request, recompensa_id):
         messages.warning(request, 'Essa recompensa está sem estoque no momento.')
     else:
         item_estoque.id_perfil = perfil
-        item_estoque.save(update_fields=['id_perfil'])
+        item_estoque.data_resgate = timezone.now()
+        item_estoque.save(update_fields=['id_perfil', 'data_resgate'])
         messages.success(request, f'Recompensa "{recompensa.nome}" resgatada com sucesso.')
 
     return redirect('recompensas')
@@ -286,7 +469,10 @@ def concluir_tarefa(request):
     id_tarefa = request.data.get('id_tarefa')
     if id_tarefa is None:
         return Response({'error': 'id_tarefa required'}, status=400)
-    updated = Tarefas.objects.filter(id=id_tarefa, concluido=False).update(concluido=True)
+    updated = Tarefas.objects.filter(id=id_tarefa, concluido=False).update(
+        concluido=True,
+        data_conclusao=timezone.now(),
+    )
     return Response({'affected': updated})
 
 @api_view(['GET'])
@@ -347,7 +533,8 @@ def resgatar_recompensa(request):
 
     if updated:
         updated.id_perfil_id = id_perfil
-        updated.save(update_fields=['id_perfil'])
+        updated.data_resgate = timezone.now()
+        updated.save(update_fields=['id_perfil', 'data_resgate'])
         return Response({'affected': 1})
     else:
         return Response({'affected': 0})

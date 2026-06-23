@@ -34,12 +34,11 @@
             style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);"
         />
 
-        <label class="meta" style="gap: 8px; align-items: center;">
-            <input type="checkbox" name="remember" />
-            <span>Lembrar de mim</span>
-        </label>
-
         <button class="button" type="submit" style="width: 100%;">Entrar</button>
+
+        <p class="muted" style="text-align: center; margin: 0;">
+            Não tem conta? <a href="{% url 'cadastro' %}" style="color: #bbf7d0;">Criar cadastro</a>
+        </p>
     </form>
 </section>
 {% endblock %}
