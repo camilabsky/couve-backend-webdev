@@ -1,8 +1,13 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
+
+router = DefaultRouter()
+router.register('recompensas-api', views.RecompensasViewSet, basename='recompensas-api')
 
 
 urlpatterns = [
+    path('', include(router.urls)),
     path('', views.landing_page, name='landing'),
     path('home/', views.home, name='home'),
     path('tarefas/', views.tarefas_page, name='tarefas'),
@@ -21,4 +26,7 @@ urlpatterns = [
     path('aceitar_tarefa', views.aceitar_tarefa),
     path('recompensas_disponiveis', views.recompensas_disponiveis),
     path('resgatar_recompensa', views.resgatar_recompensa),
-]
+    path("me/", views.me, name="me"),
+    path("login/", views.login_page, name="login"),
+    path("logout/", views.logout_page, name="logout"),
+    ]

@@ -3,11 +3,39 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import Sum, Count, Value
 from django.db.models.functions import Coalesce
 from .models import Tarefas, Perfil, Recompensas, PerfilRecompensas
+from .serializers import RecompensasSerializer
+from rest_framework import permissions
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.shortcuts import render, redirect
+
+# # Endpoint público para teste
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# def home(request):
+#     return Response({"mensagem": "Bem-vindo à API pública!"})
 
 
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def me(request):
+    return Response({
+        "id": request.user.id,
+        "username": request.user.username,
+        "email": request.user.email,
+        "first_name": request.user.first_name,
+        "last_name": request.user.last_name,
+    })
+    
 def get_active_profile():
     return Perfil.objects.order_by('id').first()
 
@@ -34,10 +62,32 @@ def landing_page(request):
         'total_tarefas': Tarefas.objects.count(),
         'tarefas_abertas': Tarefas.objects.filter(id_perfil__isnull=True).count(),
         'total_recompensas': Recompensas.objects.count(),
+        'public_header': True,
     }
     return render(request, 'app/landing.html', context)
 
+def login_page(request):
+    if request.user.is_authenticated:
+        return redirect("home")
 
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect("home")
+        messages.error(request, "Usuário ou senha inválidos.")
+
+    context = {'hide_header': True}
+    return render(request, "app/login.html", context)
+
+def logout_page(request):
+    logout(request)
+    return redirect("landing")
+
+
+@login_required(login_url="login")
 def home(request):
     perfil = get_active_profile()
     context = {
@@ -52,7 +102,7 @@ def home(request):
     }
     return render(request, 'app/home.html', context)
 
-
+@login_required(login_url="login")
 def tarefas_page(request):
     perfil = get_active_profile()
     context = {
@@ -62,7 +112,7 @@ def tarefas_page(request):
     }
     return render(request, 'app/tarefas.html', context)
 
-
+@login_required(login_url="login")
 def recompensas_page(request):
     perfil = get_active_profile()
     estoque_por_recompensa = {
@@ -83,7 +133,7 @@ def recompensas_page(request):
     }
     return render(request, 'app/recompensas.html', context)
 
-
+@login_required(login_url="login")
 def perfil_page(request):
     perfil = get_active_profile()
     context = {
@@ -301,3 +351,23 @@ def resgatar_recompensa(request):
         return Response({'affected': 1})
     else:
         return Response({'affected': 0})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def protected_resource(request):
+    return Response({
+        'message': 'Acesso autorizado.',
+        'user': request.user.username,
+    })
+
+
+class RecompensasViewSet(viewsets.ModelViewSet):
+    queryset = Recompensas.objects.all().order_by('id')
+    serializer_class = RecompensasSerializer
+    authentication_classes = [JWTAuthentication]
+
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return [AllowAny()]
+        return [IsAuthenticated()]

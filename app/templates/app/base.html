@@ -297,16 +297,23 @@
             <div class="brand">
                 <div class="brand-badge">H</div>
                 <div>
-                    <div>Horta Viva</div>
+                    <div>Couve</div>
                     <small class="muted">Gestão comunitária</small>
                 </div>
             </div>
+            {% if user.is_authenticated %}
             <nav class="nav">
                 <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
                 <a href="{% url 'tarefas' %}" class="{% if request.resolver_match.url_name == 'tarefas' %}active{% endif %}">Tarefas</a>
                 <a href="{% url 'recompensas' %}" class="{% if request.resolver_match.url_name == 'recompensas' %}active{% endif %}">Recompensas</a>
                 <a href="{% url 'perfil' %}" class="{% if request.resolver_match.url_name == 'perfil' %}active{% endif %}">Perfil</a>
+                <a href="{% url 'logout' %}">Sair</a>
             </nav>
+            {% elif public_header %}
+            <nav class="nav">
+                <a href="{% url 'login' %}">Login</a>
+            </nav>
+            {% endif %}
         </header>
         {% endif %}
 

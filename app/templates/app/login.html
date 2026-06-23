@@ -1,0 +1,45 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Login | Couve{% endblock %}
+
+{% block content %}
+<section class="panel" style="max-width: 520px; margin-inline: auto; margin-top: 36px;">
+    <div class="section-head" style="margin-bottom: 8px;">
+        <div>
+            <h1 class="section-title" style="font-size: 2rem;">Entrar</h1>
+            <p class="section-subtitle">Acesse sua conta para gerenciar tarefas e recompensas.</p>
+        </div>
+    </div>
+
+    <form method="post" class="list" style="gap: 16px;">
+        {% csrf_token %}
+
+        <label class="muted" for="username">Usuário ou e-mail</label>
+        <input
+            id="username"
+            name="username"
+            type="text"
+            placeholder="Seu usuário ou e-mail"
+            required
+            style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);"
+        />
+
+        <label class="muted" for="password">Senha</label>
+        <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Digite sua senha"
+            required
+            style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);"
+        />
+
+        <label class="meta" style="gap: 8px; align-items: center;">
+            <input type="checkbox" name="remember" />
+            <span>Lembrar de mim</span>
+        </label>
+
+        <button class="button" type="submit" style="width: 100%;">Entrar</button>
+    </form>
+</section>
+{% endblock %}
