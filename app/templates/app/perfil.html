@@ -1,0 +1,80 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Perfil | Horta Viva{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="section-head">
+        <div>
+            <h1 class="section-title">Perfil</h1>
+            <p class="section-subtitle">Resumo de progresso do perfil principal do sistema.</p>
+        </div>
+    </div>
+
+    {% if perfil %}
+    <div class="kpis" style="margin-top: 0;">
+        <div class="stat">
+            <span class="muted">Nome</span>
+            <strong style="font-size: 1.4rem;">{{ perfil.nome }}</strong>
+        </div>
+        <div class="stat">
+            <span class="muted">Saldo disponível</span>
+            <strong>{{ saldo }}</strong>
+        </div>
+        <div class="stat">
+            <span class="muted">Tarefas concluídas</span>
+            <strong>{{ tarefas_concluidas }}</strong>
+        </div>
+        <div class="stat">
+            <span class="muted">Moedas</span>
+            <strong>{{ moedas }}</strong>
+        </div>
+    </div>
+
+    <div class="kpis">
+        <div class="stat">
+            <span class="muted">Mudas</span>
+            <strong>{{ mudas }}</strong>
+        </div>
+        <div class="stat">
+            <span class="muted">Recompensas resgatadas</span>
+            <strong>{{ recompensas_resgatadas }}</strong>
+        </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 18px;">
+        <div>
+            <h2 class="section-title" style="font-size: 1.6rem;">Tarefas concluídas</h2>
+            <div class="list">
+                {% for tarefa in tarefas_concluidas_lista %}
+                <article class="list-item">
+                    <span class="pill">{{ tarefa.tipo }}</span>
+                    <strong>{{ tarefa.titulo }}</strong>
+                    <span class="muted">{{ tarefa.descricao }}</span>
+                </article>
+                {% empty %}
+                <div class="empty">Nenhuma tarefa concluída.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <h2 class="section-title" style="font-size: 1.6rem;">Recompensas resgatadas</h2>
+            <div class="list">
+                {% for item in recompensas_resgatadas_lista %}
+                <article class="list-item">
+                    <span class="pill">Resgatada</span>
+                    <strong>{{ item.id_recompensa.nome }}</strong>
+                    <span class="muted">{{ item.id_recompensa.descricao }}</span>
+                </article>
+                {% empty %}
+                <div class="empty">Nenhuma recompensa resgatada ainda.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty">Nenhum perfil encontrado no banco de dados.</div>
+    {% endif %}
+</section>
+{% endblock %}

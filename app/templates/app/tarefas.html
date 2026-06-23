@@ -1,0 +1,37 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Tarefas | Horta Viva{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="section-head">
+        <div>
+            <h1 class="section-title">Tarefas</h1>
+            <p class="section-subtitle">Escolha uma tarefa disponível para pegar.</p>
+        </div>
+        <div class="pill">Saldo atual: {{ saldo }}</div>
+    </div>
+
+    <div class="list">
+        {% for tarefa in tarefas_abertas %}
+        <article class="list-item">
+            <span class="pill">{{ tarefa.tipo }}</span>
+            <strong>{{ tarefa.titulo }}</strong>
+            <span class="muted">{{ tarefa.descricao }}</span>
+            <div class="meta">
+                <span>Horta: {{ tarefa.horta }}</span>
+                <span>Moedas: {{ tarefa.moedas }}</span>
+                <span>Mudas: {{ tarefa.mudas }}</span>
+                <span>Tempo: {{ tarefa.tempo }} min</span>
+            </div>
+            <form method="post" action="{% url 'aceitar_tarefa_page' tarefa.id %}">
+                {% csrf_token %}
+                <button class="button" type="submit">Aceitar tarefa</button>
+            </form>
+        </article>
+        {% empty %}
+        <div class="empty">Nenhuma tarefa aberta no momento.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

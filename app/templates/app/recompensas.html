@@ -1,0 +1,39 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Recompensas | Horta Viva{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="section-head">
+        <div>
+            <h1 class="section-title">Recompensas</h1>
+            <p class="section-subtitle">Use as moedas conquistadas nas tarefas para resgatar recompensas do estoque.</p>
+        </div>
+        <div class="pill">Saldo atual: {{ saldo }}</div>
+    </div>
+
+    <div class="list">
+        {% for recompensa in recompensas %}
+        <article class="list-item">
+            <span class="pill">{{ recompensa.tipo }}</span>
+            <strong>{{ recompensa.nome }}</strong>
+            <span class="muted">{{ recompensa.descricao }}</span>
+            <div class="meta">
+                <span>Preço: {{ recompensa.preco }}</span>
+                <span>Estoque: {{ recompensa.estoque }}</span>
+            </div>
+            {% if recompensa.estoque > 0 %}
+            <form method="post" action="{% url 'resgatar_recompensa_page' recompensa.id %}">
+                {% csrf_token %}
+                <button class="button" type="submit">Resgatar recompensa</button>
+            </form>
+            {% else %}
+            <div class="empty">Sem estoque disponível.</div>
+            {% endif %}
+        </article>
+        {% empty %}
+        <div class="empty">Nenhuma recompensa cadastrada.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

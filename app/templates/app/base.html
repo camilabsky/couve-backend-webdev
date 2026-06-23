@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Horta{% endblock %}</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-2: #1f2937;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --accent: #22c55e;
+            --accent-2: #84cc16;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent 30%),
+                radial-gradient(circle at top right, rgba(132, 204, 22, 0.12), transparent 28%),
+                linear-gradient(180deg, #0b1220 0%, #111827 100%);
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .shell {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 24px 0 48px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 22px;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            background: rgba(17, 24, 39, 0.82);
+            backdrop-filter: blur(18px);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 16px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .brand-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #06210f;
+            font-size: 1.1rem;
+        }
+
+        .nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .nav a {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            color: var(--muted);
+        }
+
+        .nav a:hover,
+        .nav a.active {
+            color: var(--text);
+            border-color: rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .hero,
+        .panel {
+            margin-top: 24px;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: rgba(17, 24, 39, 0.78);
+            backdrop-filter: blur(18px);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 32px;
+        }
+
+        .hero h1,
+        .section-title {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.6rem);
+            line-height: 1.02;
+        }
+
+        .hero p,
+        .section-subtitle,
+        .muted {
+            color: var(--muted);
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .card,
+        .stat,
+        .list-item {
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .stat {
+            padding: 18px;
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 2rem;
+            margin-top: 6px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .panel {
+            padding: 24px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .list-item {
+            padding: 18px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(34, 197, 94, 0.14);
+            color: #bbf7d0;
+            font-size: 0.9rem;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .empty {
+            padding: 20px;
+            border-radius: 18px;
+            border: 1px dashed var(--border);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .messages {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .message.success {
+            border-color: rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .message.error {
+            border-color: rgba(248, 113, 113, 0.35);
+            background: rgba(248, 113, 113, 0.12);
+        }
+
+        .message.warning {
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font: inherit;
+            background: rgba(34, 197, 94, 0.16);
+            color: #dcfce7;
+        }
+
+        .button.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .button:hover {
+            filter: brightness(1.08);
+        }
+
+        @media (max-width: 900px) {
+            .kpis,
+            .grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                width: min(100% - 20px, 1120px);
+            }
+
+            .topbar,
+            .section-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .kpis,
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .hero,
+            .panel {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        {% if not hide_header %}
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-badge">H</div>
+                <div>
+                    <div>Horta Viva</div>
+                    <small class="muted">Gestão comunitária</small>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
+                <a href="{% url 'tarefas' %}" class="{% if request.resolver_match.url_name == 'tarefas' %}active{% endif %}">Tarefas</a>
+                <a href="{% url 'recompensas' %}" class="{% if request.resolver_match.url_name == 'recompensas' %}active{% endif %}">Recompensas</a>
+                <a href="{% url 'perfil' %}" class="{% if request.resolver_match.url_name == 'perfil' %}active{% endif %}">Perfil</a>
+            </nav>
+        </header>
+        {% endif %}
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
