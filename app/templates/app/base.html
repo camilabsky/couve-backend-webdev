@@ -292,6 +292,7 @@
 </head>
 <body>
     <div class="shell">
+        {# Mostra o topo só quando a página precisa dele. #}
         {% if not hide_header %}
         <header class="topbar">
             <div class="brand">
@@ -318,6 +319,7 @@
         </header>
         {% endif %}
 
+        {# Exibe recados do sistema antes do conteúdo principal. #}
         {% if messages %}
         <div class="messages">
             {% for message in messages %}

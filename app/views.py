@@ -28,6 +28,7 @@ User = get_user_model()
 @api_view(["GET"])
 @permission_classes([permissions.IsAuthenticated])
 def me(request):
+    # Retorna os dados básicos do usuário que já está autenticado.
     return Response({
         "id": request.user.id,
         "username": request.user.username,
@@ -40,6 +41,7 @@ def get_or_create_user_profile(user):
     if not user.is_authenticated:
         return None
 
+    # Se o perfil ainda não existir, ele é criado com os dados do usuário.
     profile, _ = Perfil.objects.get_or_create(
         user=user,
         defaults={
@@ -55,6 +57,7 @@ def get_profile_balance(perfil):
     if not perfil:
         return 0
 
+    # O saldo é a soma das moedas ganhas menos o que já foi gasto em recompensas.
     total_moedas = Tarefas.objects.filter(
         id_perfil=perfil,
         concluido=True,
@@ -113,6 +116,7 @@ def build_admin_reports(request):
 
     report_tarefas = Tarefas.objects.filter(concluido=True, id_perfil__isnull=False).select_related('id_perfil')
 
+    # Abaixo ficam os dados que alimentam os blocos de relatório do perfil admin.
     tarefas_detalhadas = report_tarefas.order_by('-data_conclusao', '-id')
 
     tarefas_serie_temporal = (
@@ -154,6 +158,7 @@ def build_admin_reports(request):
 
 
 def landing_page(request):
+    # A tela inicial mostra um resumo público do sistema antes do login.
     context = {
         'total_perfis': Perfil.objects.count(),
         'total_tarefas': Tarefas.objects.count(),
@@ -171,6 +176,7 @@ def login_page(request):
         identifier = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
+        # Permite entrar tanto com username quanto com e-mail.
         username = identifier
         if '@' in identifier:
             matched_user = User.objects.filter(email__iexact=identifier).first()
@@ -181,6 +187,7 @@ def login_page(request):
         if user:
             login(request, user)
             return redirect("home")
+        # Se não bater, a página volta com uma mensagem simples.
         messages.error(request, "Usuário ou senha inválidos.")
 
     context = {'hide_header': True}
@@ -206,6 +213,7 @@ def cadastro_page(request):
             messages.error(request, "As senhas não coincidem.")
             return render(request, "app/cadastro.html", {'hide_header': True})
 
+        # Evita repetir username ou e-mail já usados por outra conta.
         if User.objects.filter(username__iexact=username).exists():
             messages.error(request, "Este username já está em uso.")
             return render(request, "app/cadastro.html", {'hide_header': True})
@@ -239,6 +247,7 @@ def logout_page(request):
 @login_required(login_url="login")
 def home(request):
     perfil = get_or_create_user_profile(request.user)
+    # A home concentra o resumo da pessoa e as tarefas já aceitas.
     context = {
         'greeting_name': perfil.nome if perfil else 'visitante',
         'perfil': perfil,
@@ -254,6 +263,7 @@ def home(request):
 @login_required(login_url="login")
 def tarefas_page(request):
     perfil = get_or_create_user_profile(request.user)
+    # Aqui aparecem só as tarefas livres para alguém pegar.
     context = {
         'perfil': perfil,
         'saldo': get_profile_balance(perfil),
@@ -264,6 +274,7 @@ def tarefas_page(request):
 @login_required(login_url="login")
 def recompensas_page(request):
     perfil = get_or_create_user_profile(request.user)
+    # Primeiro contamos o estoque disponível de cada recompensa.
     estoque_por_recompensa = {
         item['id_recompensa_id']: item['total']
         for item in PerfilRecompensas.objects.filter(id_perfil__isnull=True)
@@ -271,6 +282,7 @@ def recompensas_page(request):
         .annotate(total=Count('id'))
     }
 
+    # Depois a lista recebe o estoque calculado para mostrar na tela.
     recompensas = list(Recompensas.objects.all().order_by('preco', 'nome'))
     for recompensa in recompensas:
         recompensa.estoque = estoque_por_recompensa.get(recompensa.id, 0)
@@ -300,6 +312,7 @@ def perfil_page(request):
             messages.error(request, 'Este e-mail já está em uso por outro usuário.')
             return redirect('perfil')
 
+        # Atualiza os dados básicos do perfil e também o e-mail da conta.
         perfil.nome = nome
         perfil.email = email
         perfil.save(update_fields=['nome', 'email'])
@@ -322,6 +335,7 @@ def perfil_page(request):
         'recompensas_resgatadas_lista': PerfilRecompensas.objects.filter(id_perfil=perfil).select_related('id_recompensa').order_by('id_recompensa__nome') if perfil else [],
     }
     if request.user.is_superuser:
+        # O admin recebe também os relatórios adicionais da página.
         context.update(build_admin_reports(request))
 
     return render(request, 'app/perfil.html', context)
@@ -342,6 +356,7 @@ def aceitar_tarefa_page(request, tarefa_id):
     if tarefa.id_perfil_id is not None:
         messages.warning(request, 'Essa tarefa já foi aceita por outro perfil.')
     else:
+        # A tarefa passa a pertencer ao perfil que a escolheu.
         tarefa.id_perfil = perfil
         tarefa.save(update_fields=['id_perfil'])
         messages.success(request, f'Tarefa "{tarefa.titulo}" aceita com sucesso.')
@@ -368,6 +383,7 @@ def concluir_tarefa_page(request, tarefa_id):
     elif tarefa.concluido:
         messages.warning(request, 'Essa tarefa já foi concluída.')
     else:
+        # Marca a tarefa como concluída e salva o momento da finalização.
         tarefa.concluido = True
         tarefa.data_conclusao = timezone.now()
         tarefa.save(update_fields=['concluido', 'data_conclusao'])
@@ -393,6 +409,7 @@ def resgatar_recompensa_page(request, recompensa_id):
         messages.error(request, 'Saldo insuficiente para resgatar essa recompensa.')
         return redirect('recompensas')
 
+    # Busca uma unidade livre da recompensa antes de confirmar o resgate.
     item_estoque = PerfilRecompensas.objects.filter(
         id_perfil__isnull=True,
         id_recompensa=recompensa,
@@ -401,6 +418,7 @@ def resgatar_recompensa_page(request, recompensa_id):
     if not item_estoque:
         messages.warning(request, 'Essa recompensa está sem estoque no momento.')
     else:
+        # Ao resgatar, o item deixa de estar livre e passa para o perfil.
         item_estoque.id_perfil = perfil
         item_estoque.data_resgate = timezone.now()
         item_estoque.save(update_fields=['id_perfil', 'data_resgate'])
@@ -431,12 +449,12 @@ def minhas_moedas(request):
     if id_perfil is None:
         return Response({'error': 'id_perfil required'}, status=400)
 
-    # Sum moedas from concluded tasks
+    # Soma o que foi ganho nas tarefas concluídas.
     total_moedas = Tarefas.objects.filter(
         id_perfil_id=id_perfil, concluido=True
     ).aggregate(total=Coalesce(Sum('moedas'), Value(0)))['total']
 
-    # Sum gasto from redeemed rewards
+    # Subtrai o que já foi gasto em recompensas.
     total_gasto = PerfilRecompensas.objects.filter(
         id_perfil_id=id_perfil
     ).aggregate(
@@ -469,6 +487,7 @@ def concluir_tarefa(request):
     id_tarefa = request.data.get('id_tarefa')
     if id_tarefa is None:
         return Response({'error': 'id_tarefa required'}, status=400)
+    # A API marca a tarefa como concluída direto no banco.
     updated = Tarefas.objects.filter(id=id_tarefa, concluido=False).update(
         concluido=True,
         data_conclusao=timezone.now(),
@@ -555,6 +574,7 @@ class RecompensasViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
 
     def get_permissions(self):
+        # Leitura fica aberta; alterações pedem autenticação.
         if self.request.method in SAFE_METHODS:
             return [AllowAny()]
         return [IsAuthenticated()]

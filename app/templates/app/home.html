@@ -4,6 +4,7 @@
 
 {% block content %}
 <section class="hero">
+    {# Esta saudação muda conforme o nome que a view envia para a página. #}
     <span class="pill">Olá, {{ greeting_name }}</span>
     <h1>Aceite tarefas, ganhe recompensas e veja o progresso do perfil em um só lugar.</h1>
     
@@ -30,6 +31,7 @@
 <section class="panel">
     <div class="section-head">
         <div>
+            {# A lista abaixo mostra só as tarefas já aceitas por este usuário. #}
             <h2 class="section-title">Minhas tarefas</h2>
         </div>
         <div class="pill">Saldo atual: {{ saldo }}</div>
@@ -46,6 +48,7 @@
                 <span>Mudas: {{ tarefa.mudas }}</span>
                 <span>Tempo: {{ tarefa.tempo }} min</span>
             </div>
+            {# O botão finaliza a tarefa e volta para a mesma tela com o saldo atualizado. #}
             <form method="post" action="{% url 'concluir_tarefa_page' tarefa.id %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="home">
