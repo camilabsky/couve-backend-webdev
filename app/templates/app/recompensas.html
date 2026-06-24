@@ -28,10 +28,12 @@
                 <button class="button" type="submit">Resgatar recompensa</button>
             </form>
             {% else %}
+            {# Sem estoque, a ação de resgate fica escondida. #}
             <div class="empty">Sem estoque disponível.</div>
             {% endif %}
         </article>
         {% empty %}
+        {# Quando não há itens cadastrados, a tela avisa de forma direta. #}
         <div class="empty">Nenhuma recompensa cadastrada.</div>
         {% endfor %}
     </div>

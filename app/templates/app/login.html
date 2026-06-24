@@ -6,6 +6,7 @@
 <section class="panel" style="max-width: 520px; margin-inline: auto; margin-top: 36px;">
     <div class="section-head" style="margin-bottom: 8px;">
         <div>
+            {# A tela é curta de propósito para facilitar o acesso do usuário. #}
             <h1 class="section-title" style="font-size: 2rem;">Entrar</h1>
             <p class="section-subtitle">Acesse sua conta para gerenciar tarefas e recompensas.</p>
         </div>
@@ -14,6 +15,7 @@
     <form method="post" class="list" style="gap: 16px;">
         {% csrf_token %}
 
+        {# O login aceita usuário ou e-mail para ficar mais simples para a turma. #}
         <label class="muted" for="username">Usuário ou e-mail</label>
         <input
             id="username"
@@ -24,6 +26,7 @@
             style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); color: var(--text);"
         />
 
+        {# A senha fica separada para deixar a leitura do formulário mais clara. #}
         <label class="muted" for="password">Senha</label>
         <input
             id="password"

@@ -17,6 +17,7 @@
         </div>
     </div>
 
+    {# Admin vê os relatórios completos; usuário comum vê só o resumo. #}
     {% if perfil %}
     <div class="kpis" style="margin-top: 0;">
         <div class="stat">
@@ -166,6 +167,7 @@
         </div>
     </section>
     {% else %}
+    {# Para o usuário comum, a tela foca no que já foi concluído. #}
     <div class="grid-2" style="margin-top: 18px;">
         <div>
             <h2 class="section-title" style="font-size: 1.6rem;">Tarefas concluídas</h2>
