@@ -391,7 +391,6 @@ def concluir_tarefa_page(request, tarefa_id):
 
     return redirect(next_page)
 
-
 @transaction.atomic
 @login_required(login_url="login")
 def resgatar_recompensa_page(request, recompensa_id):
