@@ -148,6 +148,29 @@ Disponíveis no perfil do superusuário (`/perfil/`):
   - não use `python` para ativação;
   - use `.\.venv\Scripts\activate.bat` (CMD) ou `.\.venv\Scripts\Activate.ps1` (PowerShell).
 
+## Testes
 
+O projeto inclui testes unitários cobrindo os principais fluxos do sistema.
+
+### Como rodar
+
+bash
+python manage.py test app
+
+### O que é testado
+
+- Criação de perfil e vínculo com usuário
+- Unicidade de email
+- Criação, aceitação e conclusão de tarefas
+- Cálculo de saldo (moedas ganhas e gastas)
+- Criação de recompensas e registro de resgates
+- Cadastro de usuário (campos obrigatórios e senhas divergentes)
+- Login válido e inválido
+- Proteção de rotas para usuários não autenticados
+
+### Resultado esperado
+
+Ran 16 tests in Xs
+OK
 
 
